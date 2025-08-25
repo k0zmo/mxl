@@ -47,27 +47,28 @@ std::ostream& operator<<(std::ostream& os, mxlFlowInfo const& info)
        << '\t' << fmt::format("{: >18}: {}", "Format", getFormatString(info.common.format)) << '\n'
        << '\t' << fmt::format("{: >18}: {:0>8x}", "Flags", info.common.flags) << '\n';
 
+    auto const now = mxlGetTime();
     if (mxlIsDiscreteDataFormat(info.common.format))
     {
+        auto const currentIndex = mxlTimestampToIndex(&info.discrete.grainRate, now);
         os << '\t' << fmt::format("{: >18}: {}/{}", "Grain rate", info.discrete.grainRate.numerator, info.discrete.grainRate.denominator) << '\n'
            << '\t' << fmt::format("{: >18}: {}", "Grain count", info.discrete.grainCount) << '\n'
-           << '\t' << fmt::format("{: >18}: {}", "Head index", info.discrete.headIndex) << '\n';
+           << '\t' << fmt::format("{: >18}: {}", "Head index", info.discrete.headIndex) << '\n'
+           << '\t' << fmt::format("{: >18}: {}", "Latency (grains)", currentIndex - info.discrete.headIndex) << '\n'
+           << '\t' << fmt::format("{: >18}: {}", "Latency (ns)", now - info.common.lastWriteTime) << std::endl;
     }
     else if (mxlIsContinuousDataFormat(info.common.format))
     {
+        auto const currentIndex = mxlTimestampToIndex(&info.continuous.sampleRate, now);
         os << '\t' << fmt::format("{: >18}: {}/{}", "Sample rate", info.continuous.sampleRate.numerator, info.continuous.sampleRate.denominator)
            << '\n'
            << '\t' << fmt::format("{: >18}: {}", "Channel count", info.continuous.channelCount) << '\n'
            << '\t' << fmt::format("{: >18}: {}", "Buffer length", info.continuous.bufferLength) << '\n'
            << '\t' << fmt::format("{: >18}: {}", "Commit batch size", info.continuous.commitBatchSize) << '\n'
            << '\t' << fmt::format("{: >18}: {}", "Sync batch size", info.continuous.syncBatchSize) << '\n'
-           << '\t' << fmt::format("{: >18}: {}", "Head index", info.continuous.headIndex) << '\n';
+           << '\t' << fmt::format("{: >18}: {}", "Head index", info.continuous.headIndex) << '\n'
+           << '\t' << fmt::format("{: >18}: {}", "Latency (grains)", currentIndex - info.continuous.headIndex) << std::endl;
     }
-
-    auto const now = mxlGetTime();
-    auto const currentIndex = mxlTimestampToIndex(&info.discrete.grainRate, now);
-    os << '\t' << fmt::format("{: >18}: {}", "Latency (grains)", currentIndex - info.discrete.headIndex) << '\n'
-       << '\t' << fmt::format("{: >18}: {}", "Latency (ns)", now - info.common.lastWriteTime) << std::endl;
 
     return os;
 }
