@@ -35,12 +35,17 @@ if (NOT TARGET CLI11::CLI11)
     find_package(CLI11 CONFIG REQUIRED)
 endif ()
 
+if (NOT TARGET picojson::picojson)
+    find_package(picojson REQUIRED)
+endif()
+
 target_link_libraries(mxl-info
         PRIVATE
             mxl
             stduuid
             fmt::fmt
             CLI11::CLI11
+            picojson::picojson
     )
 
 # Not really a fan of having this relative to the binary, we should leave this

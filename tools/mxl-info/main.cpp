@@ -16,6 +16,7 @@
 #include <mxl/flow.h>
 #include <mxl/mxl.h>
 #include <mxl/time.h>
+#include <picojson/picojson.h>
 #include <sys/file.h>
 #include "../../lib/src/internal/PathUtils.hpp"
 
@@ -179,6 +180,51 @@ int garbageCollect(std::string const& in_domain)
     return EXIT_SUCCESS;
 }
 
+int printFlowDef(std::string const& in_domain, std::string const& in_id)
+{
+    // Create the SDK instance with a specific domain.
+    auto instance = mxlCreateInstance(in_domain.c_str(), "");
+    if (instance == nullptr)
+    {
+        std::cerr << "Failed to create MXL instance" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Try to get the flow definition
+    std::size_t bufferSize = 0;
+    mxlGetFlowDef(instance, in_id.c_str(), nullptr, &bufferSize);
+    if (bufferSize > 0)
+    {
+        std::string flowDef;
+        flowDef.resize(bufferSize);
+        auto status = mxlGetFlowDef(instance, in_id.c_str(), flowDef.data(), &bufferSize);
+        if (status == MXL_STATUS_OK)
+        {
+            picojson::value v;
+            if (picojson::parse(v, flowDef).empty())
+            {
+                std::cout << v.serialize(true) << std::endl;
+            }
+            else
+            {
+                std::cout << flowDef << std::endl;
+            }
+        }
+        else
+        {
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        return EXIT_FAILURE;
+    }
+
+    mxlDestroyInstance(instance);
+
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
     CLI::App app("mxl-info");
@@ -202,6 +248,7 @@ int main(int argc, char** argv)
 
     auto allOpt = app.add_flag("-l,--list", "List all flows in the MXL domain");
     auto gcOpt = app.add_flag("-g,--garbage-collect", "Garbage collect inactive flows found in the MXL domain");
+    auto flowDefOpt = app.add_flag("--flow-def", "Print the flow definition instead of flow status");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -217,7 +264,14 @@ int main(int argc, char** argv)
     }
     else if (flowIdOpt->count() > 0)
     {
-        status = printFlow(domain, flowId);
+        if (flowDefOpt->count() > 0)
+        {
+            status = printFlowDef(domain, flowId);
+        }
+        else
+        {
+            status = printFlow(domain, flowId);
+        }
     }
 
     return status;
