@@ -52,7 +52,7 @@ namespace
             auto const now = ::mxlGetTime();
 
             auto const currentIndex = ::mxlTimestampToIndex(&grainRate, now);
-            auto const latency = currentIndex - headIndex;
+            auto const latency = currentIndex > headIndex ? currentIndex - headIndex : 0;
 
             if (isTerminal(os))
             {
