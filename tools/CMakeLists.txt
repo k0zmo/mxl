@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory(mxl-info)
+add_subdirectory(mxl-data-probe)
 add_subdirectory(mxl-gst)
 
 if (MXL_ENABLE_FABRICS_OFI)
