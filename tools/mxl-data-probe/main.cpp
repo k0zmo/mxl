@@ -18,6 +18,7 @@
 #include <mxl/flow.h>
 #include <mxl/flowinfo.h>
 #include <mxl/mxl.h>
+#include "uri_parser.h"
 
 namespace
 {
@@ -441,6 +442,9 @@ namespace
 int main(int argc, char** argv)
 {
     auto app = CLI::App{"Read RFC-8331 ANC elements from an MXL Data flow."};
+    app.footer("MXL URI format:\n"
+               "    mxl://[authority[:port]]/domain[?id=...]\n"
+               "    See: https://github.com/dmf-mxl/mxl/docs/Addressability.md");
 
     auto version = ::mxlVersionType{};
     ::mxlGetVersion(&version);
@@ -448,11 +452,10 @@ int main(int argc, char** argv)
 
     auto domain = std::string{};
     auto* domainOpt = app.add_option("-d,--domain", domain, "The MXL domain directory");
-    domainOpt->required(true);
     domainOpt->check(CLI::ExistingDirectory);
 
     auto flowId = std::string{};
-    app.add_option("-f,--flow", flowId, "The flow id to read")->required(true);
+    app.add_option("-f,--flow", flowId, "The flow id to read");
 
     auto count = std::uint64_t{1};
     app.add_option("-c,--count", count, "Number of grains to read from the current head index")
@@ -461,7 +464,47 @@ int main(int argc, char** argv)
     auto timeoutMs = std::uint64_t{1000};
     app.add_option("-t,--timeout-ms", timeoutMs, "Timeout per grain read in milliseconds");
 
+    auto address = std::vector<std::string>{};
+    app.add_option("ADDRESS", address, "MXL URI")->expected(-1);
+
     CLI11_PARSE(app, argc, argv);
+
+    // URI will overwrite any other redundant options. Parse the URI after CLI11 parsing.
+    if (!address.empty())
+    {
+        auto const parsedUri = uri::parse_uri(address.at(0));
+
+        if (parsedUri.path.empty())
+        {
+            fmt::print(stderr, "ERROR: Domain must be specified in the MXL URI.\n");
+            return EXIT_FAILURE;
+        }
+
+        if (!parsedUri.authority.host.empty() || (parsedUri.authority.port != 0))
+        {
+            fmt::print(stderr, "ERROR: Authority/port not currently supported in MXL URI.\n");
+            return EXIT_FAILURE;
+        }
+
+        domain = parsedUri.path;
+
+        if (auto const idIter = parsedUri.query.find("id"); idIter != parsedUri.query.end())
+        {
+            flowId = idIter->second;
+        }
+    }
+
+    if (domain.empty())
+    {
+        fmt::print(stderr, "ERROR: Domain must be specified either via --domain or in the URI.\n");
+        return EXIT_FAILURE;
+    }
+
+    if (flowId.empty())
+    {
+        fmt::print(stderr, "ERROR: Flow id must be specified either via --flow or in the URI id query parameter.\n");
+        return EXIT_FAILURE;
+    }
 
     try
     {

@@ -2,21 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 include(GNUInstallDirs)
-include(FetchContent)
-
-FetchContent_Declare(
-    simple_uri_parser
-    GIT_REPOSITORY https://github.com/jholloc/simple-uri-parser.git
-    GIT_TAG        v1.0.0
-)
-
-FetchContent_MakeAvailable(simple_uri_parser)
-add_library(simple_uri_parser INTERFACE)
-
-target_include_directories(simple_uri_parser
-    INTERFACE
-        ${simple_uri_parser_SOURCE_DIR}
-)
 
 
 add_executable(mxl-info)

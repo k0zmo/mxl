@@ -37,6 +37,7 @@ endif ()
 target_link_libraries(mxl-data-probe
         PRIVATE
             mxl
+            simple_uri_parser
             CLI11::CLI11
             fmt::fmt
             picojson::picojson
