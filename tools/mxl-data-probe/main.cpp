@@ -21,12 +21,13 @@
 
 namespace
 {
-    constexpr std::size_t Rfc8331HeaderSizeBytes = 6;
-    constexpr std::uint16_t Lower8Bits = 0x00ffU;
-    constexpr std::uint16_t Lower10Bits = 0x03ffU;
-    constexpr std::uint16_t Lower11Bits = 0x07ffU;
+    constexpr auto const Rfc8331HeaderSizeBytes = std::size_t{6U};
+    constexpr auto const Lower8Bits = std::uint16_t{0x00ffU};
+    constexpr auto const Lower10Bits = std::uint16_t{0x03ffU};
+    constexpr auto const Lower11Bits = std::uint16_t{0x07ffU};
 
-    char const* statusToString(::mxlStatus status) noexcept
+    [[nodiscard]]
+    constexpr char const* statusToString(::mxlStatus status) noexcept
     {
         switch (status)
         {
@@ -74,13 +75,14 @@ namespace
         ScopedMxlInstance(ScopedMxlInstance const&) = delete;
         ScopedMxlInstance& operator=(ScopedMxlInstance const&) = delete;
 
+        [[nodiscard]]
         ::mxlInstance get() const noexcept
         {
             return _instance;
         }
 
     private:
-        ::mxlInstance _instance = nullptr;
+        ::mxlInstance _instance;
     };
 
     class ScopedFlowReader
@@ -88,6 +90,7 @@ namespace
     public:
         ScopedFlowReader(::mxlInstance instance, std::string const& flowId)
             : _instance{instance}
+            , _reader{nullptr}
         {
             auto const status = ::mxlCreateFlowReader(instance, flowId.c_str(), "", &_reader);
             if (status != MXL_STATUS_OK)
@@ -98,35 +101,35 @@ namespace
 
         ~ScopedFlowReader()
         {
-            if (_reader != nullptr)
-            {
-                (void)::mxlReleaseFlowReader(_instance, _reader);
-            }
+            (void)::mxlReleaseFlowReader(_instance, _reader);
         }
 
         ScopedFlowReader(ScopedFlowReader const&) = delete;
         ScopedFlowReader& operator=(ScopedFlowReader const&) = delete;
 
+        [[nodiscard]]
         ::mxlFlowReader get() const noexcept
         {
             return _reader;
         }
 
     private:
-        ::mxlInstance _instance = nullptr;
-        ::mxlFlowReader _reader = nullptr;
+        ::mxlInstance _instance;
+        ::mxlFlowReader _reader;
     };
 
     class BigEndianWordReader
     {
     public:
-        explicit BigEndianWordReader(std::span<std::uint8_t const> bytes)
+        constexpr explicit BigEndianWordReader(std::span<std::uint8_t const> bytes)
             : _bytes{bytes}
+            , _offset{0}
         {}
 
-        std::uint16_t read()
+        [[nodiscard]]
+        constexpr std::uint16_t read()
         {
-            if ((_offset + sizeof(std::uint16_t)) > _bytes.size())
+            if ((_bytes.size() - _offset) < sizeof(std::uint16_t))
             {
                 throw std::runtime_error{"Out-of-bounds read while parsing RFC-8331 ANC payload."};
             }
@@ -136,29 +139,34 @@ namespace
             return value;
         }
 
-        std::size_t wordOffset() const noexcept
+        [[nodiscard]]
+        constexpr std::size_t wordOffset() const noexcept
         {
             return _offset / sizeof(std::uint16_t);
         }
 
-        std::size_t byteOffset() const noexcept
+        [[nodiscard]]
+        constexpr std::size_t byteOffset() const noexcept
         {
             return _offset;
         }
 
     private:
         std::span<std::uint8_t const> _bytes;
-        std::size_t _offset = 0;
+        std::size_t _offset;
     };
 
     class UdwUnpacker
     {
     public:
-        explicit UdwUnpacker(BigEndianWordReader& reader)
+        constexpr explicit UdwUnpacker(BigEndianWordReader& reader)
             : _reader{&reader}
+            , _accumulatedBits{0}
+            , _bitCount{0}
         {}
 
-        std::uint16_t read()
+        [[nodiscard]]
+        constexpr std::uint16_t read()
         {
             while (_bitCount < 10U)
             {
@@ -174,8 +182,8 @@ namespace
 
     private:
         BigEndianWordReader* _reader;
-        std::uint32_t _accumulatedBits = 0;
-        std::uint32_t _bitCount = 0;
+        std::uint32_t _accumulatedBits;
+        std::uint32_t _bitCount;
     };
 
     struct AncElement
@@ -215,7 +223,7 @@ namespace
             throw std::runtime_error{"RFC-8331 Length field exceeds the available grain payload."};
         }
 
-        for (std::uint8_t i = 0; i < frame.ancCount; ++i)
+        for (auto i = std::uint8_t{0}; i < frame.ancCount; ++i)
         {
             if ((reader.wordOffset() % 2U) == 0U)
             {
@@ -235,7 +243,7 @@ namespace
             element.udw.reserve(element.dataCount);
 
             auto unpacker = UdwUnpacker{reader};
-            for (std::uint8_t word = 0; word < element.dataCount; ++word)
+            for (auto word = std::uint8_t{0}; word < element.dataCount; ++word)
             {
                 element.udw.push_back(static_cast<std::uint8_t>(unpacker.read() & Lower8Bits));
             }
@@ -273,7 +281,8 @@ namespace
         {.did = 0x61U, .sdid = 0x02U, .description = "SMPTE ST 334 CEA-608 closed captions"    },
     };
 
-    char const* describeAncDataType(std::uint8_t did, std::uint8_t sdid) noexcept
+    [[nodiscard]]
+    constexpr char const* describeAncDataType(std::uint8_t did, std::uint8_t sdid) noexcept
     {
         for (auto const& dataType : CommonAncDataTypes)
         {
@@ -300,7 +309,7 @@ namespace
             return;
         }
 
-        for (std::size_t i = 0; i < frame.elements.size(); ++i)
+        for (auto i = std::size_t{0}; i < frame.elements.size(); ++i)
         {
             auto const& element = frame.elements[i];
             fmt::print("  ANC element {}\n", i);
