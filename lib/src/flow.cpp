@@ -514,7 +514,7 @@ mxlStatus mxlFlowReaderGetSamples(mxlFlowReader reader, uint64_t index, size_t c
                 return cppReader->getSamples(index, count, toDeadline(timeoutNs), *payloadBuffersSlices);
             }
 
-            return MXL_ERR_INVALID_FLOW_WRITER;
+            return MXL_ERR_INVALID_FLOW_READER;
         }
         return MXL_ERR_INVALID_ARG;
     }
@@ -537,7 +537,7 @@ mxlStatus mxlFlowReaderGetSamplesNonBlocking(mxlFlowReader reader, uint64_t inde
                 return cppReader->getSamples(index, count, *payloadBuffersSlices);
             }
 
-            return MXL_ERR_INVALID_FLOW_WRITER;
+            return MXL_ERR_INVALID_FLOW_READER;
         }
         return MXL_ERR_INVALID_ARG;
     }
