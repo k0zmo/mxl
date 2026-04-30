@@ -48,6 +48,10 @@ namespace mxl::lib
         [[nodiscard]]
         virtual mxlFlowRuntimeInfo getFlowRuntimeInfo() const override;
 
+        /** \see ContinuousFlowWriter::getMaxWriteLength */
+        [[nodiscard]]
+        virtual std::size_t getMaxWriteLength() const override;
+
         /** \see ContinuousFlowWriter::openSamples */
         virtual mxlStatus openSamples(std::uint64_t index, std::size_t count, mxlMutableWrappedMultiBufferSlice& payloadBufferSlices) override;
 

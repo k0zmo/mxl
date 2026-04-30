@@ -57,6 +57,11 @@ namespace mxl::lib
         return getFlowData().flowInfo()->runtime;
     }
 
+    std::size_t PosixContinuousFlowWriter::getMaxWriteLength() const
+    {
+        return _bufferLength / 2U;
+    }
+
     mxlStatus PosixContinuousFlowWriter::openSamples(std::uint64_t index, std::size_t count, mxlMutableWrappedMultiBufferSlice& payloadBufferSlices)
     {
         if (_flowData)
